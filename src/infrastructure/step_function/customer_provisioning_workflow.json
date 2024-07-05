@@ -1,0 +1,15 @@
+{
+  "StartAt": "GenerateTerraformConfig",
+  "States": {
+    "GenerateTerraformConfig": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-west-2:123456789012:function:GenerateTerraformConfig",
+      "Next": "ExecuteTerraform"
+    },
+    "ExecuteTerraform": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-west-2:123456789012:function:ExecuteTerraform",
+      "End": true
+    }
+  }
+}
