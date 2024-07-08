@@ -1,5 +1,6 @@
 import os
 import json
+import argparse
 import boto3
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments
@@ -35,6 +36,16 @@ class ModelTrainer:
         self.model = AutoModelForCausalLM.from_pretrained(model_name)
         self.s3_client = boto3.client('s3')
         self.metrics = ["accuracy", "f1", "bleu", "rouge"]
+
+    def load_data_from_s3(self, s3_path: str):
+        bucket, key = self._parse_s3_path(s3_path)
+        obj = self.s3_client.get_object(Bucket=bucket, Key=key)
+        data = json.loads(obj['Body'].read().decode('utf-8'))
+        return self.load_data(data)
+
+    def _parse_s3_path(self, s3_path: str):
+        path_parts = s3_path.replace("s3://", "").split("/", 1)
+        return path_parts[0], path_parts[1]
 
     def load_data(self, data: list):
         """
@@ -156,3 +167,30 @@ class ModelTrainer:
         self.s3_client.upload_file(model_tar_path, bucket, model_name)
         
         return f"s3://{bucket}/{model_name}"
+
+
+def train(train_data_s3_bucket, train_data_s3_path, model_name='Llama-2', output_model_name='model.tar.gz'):
+    model_trainer = ModelTrainer(model_name=model_name)
+    
+    # Load and preprocess the data
+    train_dataset, val_dataset, test_dataset = model_trainer.load_data_from_s3(train_data_s3_path)
+
+    # Train the model
+    model_trainer.train_model(train_dataset, val_dataset)
+
+    # Validate the model
+    validation_metrics = model_trainer.validate_model(val_dataset)
+    print(f"Validation metrics results: {validation_metrics}")
+
+    # Deploy the model
+    model_s3_uri = model_trainer.deploy_model(model_dir='/opt/ml/model', bucket=train_data_s3_bucket, model_name=output_model_name)
+
+    print(f"Model deployed at: {model_s3_uri}")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Train and deploy a SageMaker model.")
+    parser.add_argument('--train_data_s3_path', type=str, required=True, help="S3 path to the training data, in the S3 bucket.")
+    parser.add_argument('--train_data_s3_bucket', type=str, required=True, help="S3 bucket containing the training data")
+    args = parser.parse_args()
+
+    train(args.train_data_s3_bucket, args.train_data_s3_path)
