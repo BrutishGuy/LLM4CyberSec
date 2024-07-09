@@ -1,0 +1,21 @@
+# Files to ignore in repo
+
+*.pyc
+*/*.pyc
+*.pyo
+*/*.pyc
+!**/__pycache__/
+*pycache*
+*.csv
+*.text
+*.temp
+.DS_Store
+**/.DS_Store
+
+# Local directories to ignore in repo
+/site-packages/*-info
+/code/*-info
+/pip3-libraries/*-info
+
+# Local directories
+**/.terraform/*

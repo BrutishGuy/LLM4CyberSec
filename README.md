@@ -14,7 +14,17 @@ Below you can find explanations of our approach, including architectural overvie
 2. **AWS Lambda**: Lambda is used as a bridge between Lex and SageMaker, i.e. for function calling.
 3. **Amazon SageMaker**: SageMaker hosts the fine-tuned LLM for specialised processing using SageMaker Endpoints, and SageMaker Batch Jobs for other services such as user query drift detection and anomaly detection.
 4. **Amazon API Gateway**: API Gateway manages incoming requests from the user interface (UI), both from cloud and from on-prem, and forwards requests to Lex and relays responses to back to the UI.
-5. **Amazon ECR** ECR hosts our base images, into which we load our model-specific fine-tuned weights for our specialist models
+5. **Amazon ECR** ECR hosts our base images, into which we load our model-specific fine-tuned weights for our specialist models.
+6. **Amazon S3** S3 is used for all data storage and model weight storage needs.
+7. **Amazon RDS** RDS is used to host our RAG vector store.
+8. **Amazon DynamoDB** DynamoDB is used to host our customer database and customer entitlement list, which contains information on which customer has which feature enabled/paid for, including access to our cybersecurity virtual assistant, Cybersec Bot.
+9. **Amazon Step Functions** Step Functions are used to deploy, via Terraform, new customer infrastructure for Cybersec Bot, once the feature is purchased for the first time. This is done in conjunction with Amazon CloudPipeline. With the same success, it can be done with CloudFormation.
+10. **Amazon CloudPipeline** CloudPipeline is used for the same task as with Step Functions above, but serves to implement the Terraform plan. Again, CloudFormation can be used directly as Amazon's native infrastructure-as-code (IaC) rather than hosting custom Terraform.
+
+See the diagram below for more details as to how these services interact in order to realise the proposed deployment solution for Cybersec Bot in AWS.
+
+![AWS Architecture for Cybersec Bot Deployment and Provisioning](docs/images/aws_infra_llm_chatbot.png)
+
 
 ### Features
 
@@ -116,8 +126,8 @@ python llm4cybersecurity.py --train_bucket_s3_path <your-bucket> --train_data_s3
 We also provide a module for data drift detection, for anomalous user queries (i.e. queries not encountered thus far that deviate substantially from training dataset distribution), and for systemic user query deviation from the training dataset distribution. Navigate to the `src/models/datadriftdetector/` directory and run the data drift detection script:
 
 ```bash
-cd data_drift
-python detect_drift.py --user_validation_bucket_s3_path <your-bucket> --user_validation_data_s3_path <s3-path>/user_validation_data.json
+cd src/models/datadriftdetector/detector
+python datadriftmodel.py --user_validation_bucket_s3_path <your-bucket> --user_validation_data_s3_path <s3-path>/user_validation_data.json
 ```
 
 ### 6. Example Usage
